@@ -8,14 +8,14 @@ terraform {
 }
 
 provider "aws" {
-  region = "eu-north-1"
-  shared_credentials_file = "/Users/mme/.aws/credentials"
+  region = var.aws_region
+  shared_credentials_file = var.shared_credentials_file
   profile = "default"
 }
 
 resource "aws_instance" "devmachine" {
-  ami           = "ami-0717dacde6ae13b14"
-  instance_type = "t3.xlarge"
+  ami           = var.aws_ami
+  instance_type = var.instance_type
   tags = {
     Name = "devmachine"
   }
