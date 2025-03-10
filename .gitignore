@@ -135,5 +135,5 @@ dmypy.json
 # IaC stuff
 .terraform
 .terraform.*
-.tfstate
-.tfstate.*
+tfstate
+tfstate.*
