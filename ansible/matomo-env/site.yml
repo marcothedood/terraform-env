@@ -1,8 +1,15 @@
 
+- name: Load secret variables
+  hosts: matomo_server
+  tasks:
+    - name: Load secret variables
+      include_vars:
+        file: vars/secrets.yml
+  tags:
+    - always
+
 - hosts: matomo_server
   become: true
-  vars_files:
-    - vars/secrets.yml
   roles:
     - sysconfig
 
@@ -15,7 +22,7 @@
         connect_timeout: 30
         reboot_timeout: 300
         pre_reboot_delay: 10
-        post_reboot_delay: 60
+        post_reboot_delay: 40
       tags:
       - sysconfig
 
@@ -23,3 +30,8 @@
   become: true
   roles:
     - pkgs
+    - matomoprovisioning
+  handlers:
+    - import_tasks: handlers/main.yml
+
+

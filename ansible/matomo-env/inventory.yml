@@ -1,8 +1,10 @@
 all:
+  vars:
+    secrets_file: vars/secrets.yml
   hosts:
     matomo_server:
-      ansible_host: 13.50.141.91
-      domain: devm.doodlab.xyz
+      ansible_host: 13.50.20.122
+      domain: matomo.doodlab.xyz
       admin_mail: marco.medde@proton.me
       ansible_user: ec2-user
       ansible_ssh_private_key_file: ~/.ssh/terraform-env/aws

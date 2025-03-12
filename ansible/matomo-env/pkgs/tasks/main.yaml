@@ -7,38 +7,47 @@
   tags:
     - pkgs
 
-- name: Import Red Hat GPG Key
-  command: rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
-  become: true
-  changed_when: false
-  tags:
-    - pkgs
+# - name: Check if Red Hat GPG Key is installed
+#   shell: rpm -q gpg-pubkey | grep -q gpg-pubkey && echo "present" || echo "missing"
+#   register: gpg_key_status
+#   changed_when: false
+#   failed_when: false
+#   become: true
 
-- name: Clean DNF cache
-  command: dnf clean all
-  become: true
-  changed_when: false
-  tags:
-    - pkgs
+# - name: Import Red Hat GPG Key
+#   rpm_key:
+#     state: present
+#     key: /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+#   when: "'missing' in gpg_key_status.stdout"
+#   become: true
+#   tags:
+#     - pkgs
 
-- name: Refresh repository metadata
-  command: dnf makecache --refresh
-  become: true
-  changed_when: false
-  tags:
-    - pkgs
+# - name: Clean DNF cache
+#   command: dnf clean all
+#   become: true
+#   changed_when: false
+#   tags:
+#     - pkgs
 
-- name: Update all packages to the latest version
-  dnf:
-    name: "*"
-    state: latest
-    update_cache: yes
-    update_only: yes
-    security: no
-    skip_broken: yes
-    disable_gpg_check: yes
-  tags:
-    - pkgs
+# - name: Refresh repository metadata
+#   command: dnf makecache --refresh
+#   become: true
+#   changed_when: false
+#   tags:
+#     - pkgs
+
+# - name: Update all packages to the latest version
+#   dnf:
+#     name: "*"
+#     state: latest
+#     update_cache: yes
+#     update_only: yes
+#     security: no
+#     skip_broken: yes
+#     disable_gpg_check: yes
+#   tags:
+#     - pkgs
 
 - name: Install required packages
   dnf:
@@ -56,22 +65,26 @@
       - unzip
       - certbot
       - python3-certbot-nginx
+      - python3-PyMySQL
     state: present
     update_cache: yes
   tags:
     - pkgs
 
 
-- name: Verify Certbot installation
-  command: certbot --version
-  register: certbot_version
-  changed_when: false
+- name: Ensure Certbot is installed
+  package:
+    name: certbot
+    state: present
+  become: true
   tags:
     - pkgs
 
-- name: Debug Certbot version output
-  debug:
-    msg: "Certbot installed successfully. Version: {{ certbot_version.stdout }}"
+- name: Ensure Nginx Certbot plugin is installed
+  package:
+    name: python3-certbot-nginx
+    state: present
+  become: true
   tags:
     - pkgs
 

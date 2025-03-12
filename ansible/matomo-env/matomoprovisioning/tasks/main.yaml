@@ -1,0 +1,341 @@
+- name: Copy Matomo zip file to the target system with root privileges
+  block:
+    - copy:
+        src: "tools/matomo.zip"
+        dest: "/var/www/matomo.zip"
+        owner: nginx
+        group: nginx
+        # mode: "0644"
+  become: true
+  tags:
+    - matomoprovisioning
+
+- name: Ensure /var/www exists
+  file:
+    path: "/var/www"
+    state: directory
+    owner: nginx
+    group: nginx
+    mode: "0755"
+  become: true
+  tags:
+    - matomoprovisioning
+
+- name: Extract Matomo directly into /var/www
+  unarchive:
+    src: "/var/www/matomo.zip"
+    dest: "/var/www"
+    remote_src: yes
+    owner: nginx
+    group: nginx
+  become: true
+  tags:
+    - matomoprovisioning
+
+- name: Remove Matomo zip after extraction
+  file:
+    path: "/var/www/matomo.zip"
+    state: absent
+  become: true
+  tags:
+    - matomoprovisioning
+
+- name: Set correct permissions for Matomo
+  file:
+    path: "/var/www/matomo"
+    owner: nginx
+    group: nginx
+    mode: "0755"
+    recurse: yes
+  become: true
+  tags:
+    - matomoprovisioning
+
+- name: Make /var/www/matomo/config writable
+  file:
+    path: /var/www/matomo/config
+    mode: "0777"
+  become: true
+  tags:
+    - matomoprovisioning
+
+- name: Create an empty config.ini.php if it doesn't exist
+  file:
+    path: /var/www/matomo/config/config.ini.php
+    state: touch
+    owner: nginx
+    group: nginx
+    mode: "0775"
+  become: true
+  tags:
+    - matomoprovisioning
+
+- name: Set correct permissions for Matomo/tmp folder
+  file:
+    path: "/var/www/matomo/tmp"
+    owner: apache
+    group: apache
+    mode: "0777"
+    recurse: yes
+  become: true
+  tags:
+    - matomoprovisioning
+
+- name: Ensure matomo.js is writable
+  file:
+    path: /var/www/matomo/matomo.js
+    mode: "0775"
+  become: true
+  tags:
+    - matomoprovisioning
+
+- name: Add apache to the nginx group
+  user:
+    name: apache
+    groups: nginx
+    append: yes
+  become: true
+  tags:
+    - matomo-provisioning
+
+- name: Apply correct SELinux context for Matomo
+  command: chcon -R -t httpd_sys_rw_content_t /var/www/matomo
+  ignore_errors: true  # Ignore if SELinux is disabled
+  become: true
+  tags:
+    - matomo-provisioning
+
+- name: Persist SELinux context for Matomo
+  command: semanage fcontext -a -t httpd_sys_rw_content_t "/var/www/matomo(/.*)?"
+  ignore_errors: true  # Ignore errors if semanage is not installed
+  become: true
+  tags:
+    - matomo-provisioning
+
+- name: Restore SELinux file context
+  command: restorecon -Rv /var/www/matomo
+  ignore_errors: true
+  become: true
+  tags:
+    - matomo-provisioning
+
+- name: Allow HTTPD to connect to remote networks
+  command: setsebool -P httpd_can_network_connect 1
+  become: true
+  tags:
+    - matomoprovisioning
+
+- name: Allow HTTPD to connect to databases
+  command: setsebool -P httpd_can_network_connect_db 1
+  become: true
+  tags:
+    - matomoprovisioning
+
+# - name: Restart Nginx and PHP-FPM
+#   systemd:
+#     name: "{{ item }}"
+#     state: restarted
+#   loop:
+#     - nginx
+#     - php-fpm
+#   become: true
+#   tags:
+#     - matomoprovisioning
+
+- name: Configure database
+  mysql_db:
+    name: matomo
+    state: present
+  become: true
+  tags:
+    - matomoprovisioning
+
+- name: Create Matomo user for MySQL (localhost)
+  mysql_user:
+    name: matomo_user
+    password: "{{ matomo_db_pwd }}"
+    host: "localhost"
+    priv: "matomo.*:ALL"
+    state: present
+  become: true
+  tags:
+    - matomoprovisioning
+
+- name: Create Matomo user for MySQL (127.0.0.1)
+  mysql_user:
+    name: matomo_user
+    password: "{{ matomo_db_pwd }}"
+    host: "127.0.0.1"
+    priv: "matomo.*:ALL"
+    state: present
+  become: true
+  tags:
+    - matomoprovisioning
+
+- name: Create Matomo user for MySQL (localhost)
+  mysql_user:
+    name: matomo_user
+    password: "{{ matomo_db_pwd }}"
+    host: "localhost"
+    priv: "matomo.*:ALL"
+    state: present
+  become: true
+  tags:
+    - matomoprovisioning
+
+- name: Ensure Matomo user has correct privileges for localhost
+  mysql_query:
+    login_user: root
+    query: "GRANT ALL PRIVILEGES ON matomo.* TO 'matomo_user'@'localhost' IDENTIFIED BY '{{ matomo_db_pwd }}';"
+  become: true
+  tags:
+    - matomoprovisioning
+
+- name: Ensure Matomo user has correct privileges for 127.0.0.1
+  mysql_query:
+    login_user: root
+    query: "GRANT ALL PRIVILEGES ON matomo.* TO 'matomo_user'@'127.0.0.1' IDENTIFIED BY '{{ matomo_db_pwd }}';"
+  become: true
+  tags:
+    - matomoprovisioning
+
+- name: Flush privileges to apply changes
+  mysql_query:
+    login_user: root
+    query: "FLUSH PRIVILEGES;"
+  become: true
+  tags:
+    - matomoprovisioning
+
+- name: Deploy Matomo configuration file
+  template:
+    src: templates/matomo_config.ini.j2
+    dest: /var/www/matomo/config/config.ini.php
+    owner: nginx
+    group: nginx
+    mode: "0644"
+    force: no  # Prevents overwriting if the file already exists
+  become: true
+  register: config_file_status
+  ignore_errors: true  # Ensures playbook continues even if there's an issue
+  tags:
+    - matomoprovisioning
+
+- name: Ensure correct permissions for config.ini.php
+  file:
+    path: /var/www/matomo/config/config.ini.php
+    owner: nginx
+    group: nginx
+    mode: "0644"
+  become: true
+  when: config_file_status is defined and config_file_status.changed
+  tags:
+    - matomoprovisioning
+
+- name: Configure MariaDB to bind to 127.0.0.1
+  lineinfile:
+    path: /etc/my.cnf.d/mariadb-server.cnf
+    regexp: '^bind-address'
+    line: 'bind-address = 127.0.0.1'
+    create: yes
+  become: true
+  notify: Restart MariaDB
+  tags:
+    - matomoprovisioning
+
+- name: Ensure Matomo database exists
+  mysql_db:
+    name: matomo
+    state: present
+  become: true
+  tags:
+    - matomoprovisioning
+
+- name: Ensure Matomo MySQL user exists and has proper privileges
+  mysql_user:
+    name: matomo_user
+    password: "{{ matomo_db_pwd }}"
+    priv: "matomo.*:ALL"
+    host: "localhost"
+    column_case_sensitive: false
+    state: present
+  become: true
+  tags:
+    - matomoprovisioning
+
+- name: Ensure Matomo MySQL user can connect via 127.0.0.1
+  mysql_user:
+    name: matomo_user
+    password: "{{ matomo_db_pwd }}"
+    priv: "matomo.*:ALL"
+    host: "127.0.0.1"
+    state: present
+  become: true
+  tags:
+    - matomoprovisioning
+
+- name: Allow MySQL connections from PHP (SELinux)
+  command: setsebool -P httpd_can_network_connect_db 1
+  become: true
+  when: ansible_selinux.status == "enabled"
+  tags:
+    - matomoprovisioning
+
+- name: Deploy Nginx configuration
+  template:
+    src: templates/matomo_nginx.conf.j2
+    dest: /etc/nginx/conf.d/matomo.conf
+  notify: Reload nginx
+  become: true
+  tags:
+    - matomoprovisioning
+
+# - name: Obtain SSL certificate with Certbot
+#   command: certbot --nginx -d {{ domain }} -d www.{{ domain }} --non-interactive --agree-tos -m {{ admin_mail }} --redirect
+#   notify: Reload nginx
+#   become: true
+#   tags:
+#     - matomoprovisioning
+
+- name: Ensure nginx is running before Certbot
+  systemd:
+    name: nginx
+    state: restarted
+  become: true
+  ignore_errors: true
+  tags:
+    - matomoprovisioning
+
+- name: Generate SSL certificate with Certbot (nginx)
+  command: >
+    certbot --nginx -d {{ domain }} -d www.{{ domain }}
+    --non-interactive --agree-tos -m {{ admin_mail }} --redirect
+  register: certbot_result
+  changed_when: "'Congratulations' in certbot_result.stdout"
+  become: true
+  tags:
+    - matomoprovisioning
+
+- name: Restart Nginx and PHP-FPM
+  systemd:
+    name: "{{ item }}"
+    state: restarted
+  loop:
+    - nginx
+    - php-fpm
+    - mariadb
+  become: true
+  tags:
+    - matomoprovisioning
+
+- name: Ensure Matomo services restart on boot
+  systemd:
+    name: "{{ item }}"
+    enabled: yes
+  with_items:
+    - nginx
+    - mariadb
+    - php-fpm
+  become: true
+  tags:
+    - matomoprovisioning

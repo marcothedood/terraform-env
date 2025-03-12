@@ -28,6 +28,8 @@
   with_items:
     - /var/lib/mysql
     - /var/www
+  tags:
+    - sysconfig
 
 - name: Mount disks
   mount:

@@ -1,0 +1,38 @@
+server {
+    listen 80;
+    server_name {{ domain }} www.{{ domain }};
+
+    # Let's Encrypt challenge for Certbot
+    location /.well-known/acme-challenge/ {
+        root /var/www/html;
+    }
+
+    root /var/www/matomo;
+    index index.php;
+    client_max_body_size 100M;
+
+    access_log /var/log/nginx/matomo.access.log;
+    error_log /var/log/nginx/matomo.error.log;
+
+    location / {
+        try_files $uri $uri/ =404;
+
+        if ($scheme = http) {
+            return 301 https://$host$request_uri;
+        }
+    }
+
+    # PHP handling
+    location ~ ^/(index|matomo|piwik|js/index|plugins/HeatmapSessionRecording/configs)\.php$ {
+        include fastcgi_params;
+        fastcgi_pass unix:/run/php-fpm/www.sock;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param PATH_INFO $fastcgi_script_name;
+    }
+
+    # Static files caching
+    location ~* \.(ico|gif|png|jpg|jpeg|svg|woff|woff2|ttf|css|js)$ {
+        expires max;
+        log_not_found off;
+    }
+}

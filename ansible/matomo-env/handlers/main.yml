@@ -1,0 +1,9 @@
+- name: Reload nginx
+  systemd:
+    name: nginx
+    state: reloaded
+
+- name: Restart MariaDB
+  systemd:
+    name: mariadb
+    state: restarted
