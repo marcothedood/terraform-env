@@ -1,0 +1,20 @@
+
+- hosts: matomo_server
+  become: true
+  vars_files:
+    - vars/secrets.yml
+  roles:
+    - sysconfig
+
+- hosts: matomo_server
+  become: true
+  tasks:
+    - name: Reboot the machine
+      reboot:
+        msg: "Rebooting after mounting /var/lib/mysql and /var/www"
+        connect_timeout: 30
+        reboot_timeout: 300
+        pre_reboot_delay: 10
+        post_reboot_delay: 90
+      tags:
+      - sysconfig

@@ -1,0 +1,56 @@
+- name: Check if disks are formatted
+  shell: "[ -b {{ item }} ] && blkid -o value -s TYPE {{ item }} || echo 'unformatted'"
+  register: disk_format
+  changed_when: false
+  become: true  # Runs as root
+  with_items:
+    - /dev/nvme1n1
+    - /dev/nvme2n1
+  tags:
+    - sysconfig
+
+- name: Force format disks if no filesystem detected
+  command: mkfs.ext4 -F {{ item.item }}
+  when: item.stdout == "unformatted"
+  become: true  # Ensures formatting works
+  with_items: "{{ disk_format.results }}"
+  tags:
+    - sysconfig
+
+- name: Ensure mount directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  become: true  # Ensures directories are created properly
+  with_items:
+    - /var/lib/mysql
+    - /var/www
+
+- name: Mount disks
+  mount:
+    path: "{{ item.path }}"
+    src: "{{ item.device }}"
+    fstype: ext4
+    opts: defaults,nofail
+    state: mounted
+  become: true  # Ensures mount is successful
+  with_items:
+    - { path: /var/lib/mysql, device: /dev/nvme1n1 }
+    - { path: /var/www, device: /dev/nvme2n1 }
+  tags:
+    - sysconfig
+
+- name: Persist mounts in fstab
+  lineinfile:
+    path: /etc/fstab
+    line: "{{ item }}"
+    create: yes
+  become: true  # Ensures fstab can be modified
+  with_items:
+    - "/dev/nvme1n1 /var/lib/mysql ext4 defaults,nofail 0 0"
+    - "/dev/nvme2n1 /var/www ext4 defaults,nofail 0 0"
+  tags:
+    - sysconfig
