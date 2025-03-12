@@ -96,28 +96,28 @@
     append: yes
   become: true
   tags:
-    - matomo-provisioning
+    - matomoprovisioning
 
 - name: Apply correct SELinux context for Matomo
   command: chcon -R -t httpd_sys_rw_content_t /var/www/matomo
   ignore_errors: true  # Ignore if SELinux is disabled
   become: true
   tags:
-    - matomo-provisioning
+    - matomoprovisioning
 
 - name: Persist SELinux context for Matomo
   command: semanage fcontext -a -t httpd_sys_rw_content_t "/var/www/matomo(/.*)?"
   ignore_errors: true  # Ignore errors if semanage is not installed
   become: true
   tags:
-    - matomo-provisioning
+    - matomoprovisioning
 
 - name: Restore SELinux file context
   command: restorecon -Rv /var/www/matomo
   ignore_errors: true
   become: true
   tags:
-    - matomo-provisioning
+    - matomoprovisioning
 
 - name: Allow HTTPD to connect to remote networks
   command: setsebool -P httpd_can_network_connect 1
