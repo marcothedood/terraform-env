@@ -1,0 +1,120 @@
+- name: Enable EPEL repository for RHEL 8
+  dnf:
+    name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm"
+    state: present
+    disable_gpg_check: yes
+  become: true
+  tags:
+    - pkgs
+
+- name: Import Red Hat GPG Key
+  command: rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+  become: true
+  changed_when: false
+  tags:
+    - pkgs
+
+- name: Clean DNF cache
+  command: dnf clean all
+  become: true
+  changed_when: false
+  tags:
+    - pkgs
+
+- name: Refresh repository metadata
+  command: dnf makecache --refresh
+  become: true
+  changed_when: false
+  tags:
+    - pkgs
+
+- name: Update all packages to the latest version
+  dnf:
+    name: "*"
+    state: latest
+    update_cache: yes
+    update_only: yes
+    security: no
+    skip_broken: yes
+    disable_gpg_check: yes
+  tags:
+    - pkgs
+
+- name: Install required packages
+  dnf:
+    name:
+      - nginx
+      - mariadb-server
+      - php-fpm
+      - php-mysqlnd
+      - php-xml
+      - php-json
+      - php-mbstring
+      - php-cli
+      - php-gd
+      - php-curl
+      - unzip
+      - certbot
+      - python3-certbot-nginx
+    state: present
+    update_cache: yes
+  tags:
+    - pkgs
+
+
+- name: Verify Certbot installation
+  command: certbot --version
+  register: certbot_version
+  changed_when: false
+  tags:
+    - pkgs
+
+- name: Debug Certbot version output
+  debug:
+    msg: "Certbot installed successfully. Version: {{ certbot_version.stdout }}"
+  tags:
+    - pkgs
+
+- name: Configure MariaDB to use /var/lib/mysql
+  block:
+    - name: Stop MariaDB before changing data directory
+      systemd:
+        name: mariadb
+        state: stopped
+      ignore_errors: true
+
+    - name: Set correct SELinux context for /var/lib/mysql (if enabled)
+      command: semanage fcontext -a -t mysqld_db_t "/var/lib/mysql(/.*)?"
+      ignore_errors: true
+
+    - name: Restore SELinux context
+      command: restorecon -Rv /var/lib/mysql
+      ignore_errors: true
+
+    - name: Update MariaDB config to use /var/lib/mysql
+      lineinfile:
+        path: /etc/my.cnf.d/mariadb-server.cnf
+        regexp: '^datadir='
+        line: 'datadir=/var/lib/mysql'
+      notify: Restart MariaDB
+  tags:
+    - pkgs
+
+- name: Enable and start services
+  systemd:
+    name: "{{ item }}"
+    enabled: yes
+    state: started
+  with_items:
+    - nginx
+    - mariadb
+    - php-fpm
+  tags:
+    - pkgs
+
+- name: Restart MariaDB
+  systemd:
+    name: mariadb
+    state: restarted
+  tags:
+    - pkgs
