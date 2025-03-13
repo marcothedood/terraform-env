@@ -6,6 +6,24 @@ For this purpose we're going to use Terraform, one of the most widely used and p
 
 Since we're learning the tool, we'll start by some basic stuff and as long as we learn new things and best practices we're going to tweak the config making it more structured.
 
+This is the assignment:
+
+>Deploy a new VM using __Terraform__:
+>__Specs:__
+>* Operating System: RHEL 8.x
+>* 4 vCPUs
+>* 8 GB RAM
+>* Root storage: 10GB
+>* Primary storage: 50 GB
+>* Secondary storage: 150 GB
+
+>Write an __Ansible__ playbook or role to have:
+>* Matomo installed on the VM created in the previous step
+>* The Matomo (compressed) tarball must be copied from the Ansible Controller to the target system
+>* HTTPS connections to Matomo’s web GUI are a must (nginx)
+>* DB is to be stored in the secondary disk
+>* Services must start up automatically every time the system is rebooted
+
 
 ## Setting up the environment
 
@@ -66,12 +84,7 @@ Once done, we can then issue this command to download the repo:
 
 ```git clone https://github.com/marcothedood/terraform-env.git```
 
-We need to cd in the aws directory and we'll find the main.tf file.
+And move forward to deploy the Infra via [Terraform][terraform] and then configure the system via [Ansible][ansible].
 
-For terraform to provide the declarated resources it is needed to issue:
-
-```
-$ terraform init
-$ terraform plan
-$ terraform apply
-```
+[terraform]: ./docs/bootstrap/README.md
+[ansible]:
