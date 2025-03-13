@@ -2,7 +2,7 @@ RHEL8 Instance  From Scratch
 ---------------------
 > Bootstrapping a RHEL8 machine using Terraform.
 
-How do you How do you provision an instance from scratch using Terraform? The
+How do you provision an instance from scratch using Terraform? The
 high-level procedure is pretty straightforward if you're familiar
 with Cloud technologies:
 
