@@ -86,9 +86,5 @@ Once done, we can then issue this command to download the repo:
 
 And move forward to deploy the Infra via [Terraform][terraform] and then configure the system via [Ansible][ansible].
 
-For information about every part of the configuration, read up about in the [docs][docs]
-
-
-[docs]: ./docs/README.md
 [terraform]: ./docs/terraform-bootstrap/README.md
 [ansible]: ./docs/ansible-playbook/README.md
