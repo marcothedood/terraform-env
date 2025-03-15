@@ -29,4 +29,4 @@ The Ansible role sysconfig will format the disks to ext4 and then mount the `/va
 
 
 
-[aws-setup]: ../../docs/bootstrap/README.md
+[aws-setup]: ../../docs/terraform-bootstrap/README.md

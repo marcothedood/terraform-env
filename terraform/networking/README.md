@@ -19,7 +19,7 @@ Looking at out TF configuration, we define:
 
 We also define the an IP to be associated to our instance and perform some operations on our managed domain so to create 2 records with the relative newly created IP.
 
-In our little-playground scenario it would be better to define a static IP and then to store it in a variable by defining it in our variable.tf file but, since we're experimenting, we use Amazon Elastic Ip (AWS EIP) functionality which will auto-assign an IP address to the machine.
+In our little-playground scenario it would be better to define a static IP and then to store it in a variable by defining it in our variable file but, since we're experimenting, we use Amazon Elastic Ip (AWS EIP) functionality which will auto-assign an IP address to the machine.
 
 The `resource "aws_eip" "instance"` and `resource "aws_eip_association" "eip_assoc"` declaration will do the magic.
 
